@@ -26,6 +26,7 @@ import type { DashboardModel } from './dashboardModel';
 
 type SessionSidebarProps = {
   model: DashboardModel;
+  onCollapse: () => void;
 };
 
 const TabListView = ListView<Tab>;
@@ -76,7 +77,7 @@ const TabRow: React.FC<{ tab: Tab; model: DashboardModel }> = ({ tab, model }) =
   </>;
 };
 
-export const SessionSidebar: React.FC<SessionSidebarProps> = ({ model }) => {
+export const SessionSidebar: React.FC<SessionSidebarProps> = ({ model, onCollapse }) => {
   const { sessions, clientInfo, loadingSessions, tabs: allTabs } = model.state;
   const openSessions = sessions;
 
@@ -124,7 +125,15 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({ model }) => {
   return <nav className='dashboard-shell-sidebar' aria-label='Sessions'>
     <div className='dashboard-shell-sidebar-header'>
       <h2 className='dashboard-shell-sidebar-title'>Sessions</h2>
-      <SettingsButton />
+      <div className='sidebar-header-actions'>
+        <ToolbarButton
+          className='sidebar-collapse-button'
+          icon='layout-sidebar-left-off'
+          title='Hide Sessions'
+          onClick={onCollapse}
+        />
+        <SettingsButton />
+      </div>
     </div>
     <div className='dashboard-shell-sidebar-content'>
       {loadingSessions && <p className='sidebar-empty' role='status' aria-live='polite'>Loading sessions...</p>}

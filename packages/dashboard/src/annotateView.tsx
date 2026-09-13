@@ -27,9 +27,10 @@ export type AnnotateSidebarProps = {
   model: DashboardModel;
   session: NonNullable<DashboardModel['state']['annotateSession']>;
   onSubmit: () => Promise<void> | void;
+  onCollapse: () => void;
 };
 
-export const AnnotateSidebar: React.FC<AnnotateSidebarProps> = ({ model, session, onSubmit }) => {
+export const AnnotateSidebar: React.FC<AnnotateSidebarProps> = ({ model, session, onSubmit, onCollapse }) => {
   const [submitting, setSubmitting] = React.useState(false);
   const [hoveredAnnotationId, setHoveredAnnotationId] = React.useState<string | null>(null);
 
@@ -37,6 +38,12 @@ export const AnnotateSidebar: React.FC<AnnotateSidebarProps> = ({ model, session
     <aside className='annotate-sidebar' aria-label='Annotation screenshots'>
       <div className='annotate-sidebar-header dashboard-shell-sidebar-header'>
         <h2 className='dashboard-shell-sidebar-title'>UI Review</h2>
+        <ToolbarButton
+          className='sidebar-collapse-button'
+          icon='layout-sidebar-right-off'
+          title='Hide UI Review'
+          onClick={onCollapse}
+        />
       </div>
       <div className='annotate-sidebar-list'>
         {session.frames.map(frame => {
