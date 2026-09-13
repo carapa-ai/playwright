@@ -24,7 +24,7 @@ import { DebuggerPanel } from './debuggerPanel';
 
 import { ToolbarButton } from '@web/components/toolbarButton';
 import { SplitView } from '@web/components/splitView';
-import { useMeasureForRef } from '@web/uiUtils';
+import { useMeasureForRef, useSetting } from '@web/uiUtils';
 
 import type { DashboardModel } from './dashboardModel';
 
@@ -72,6 +72,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ model }) => {
   const interactive = mode === 'interactive';
   const annotateActive = !!annotateSession;
   const selectedFrame = annotateSession?.frames.find(f => f.id === annotateSession.selectedFrameId) ?? null;
+  const [annotateSidebarHidden, setAnnotateSidebarHidden] = useSetting('dashboardAnnotateSidebar:hidden', false);
 
   const [flashTick, setFlashTick] = React.useState(0);
 
@@ -414,11 +415,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ model }) => {
         />
       )}
       {annotateSession && (
-        <AnnotateSidebar
-          model={model}
-          session={annotateSession}
-          onSubmit={() => model.submitAnnotateSession()}
-        />
+        annotateSidebarHidden
+          ? <ToolbarButton
+            className='sidebar-reopen-button sidebar-reopen-annotate'
+            icon='layout-sidebar-right'
+            title='Show UI Review'
+            onClick={() => setAnnotateSidebarHidden(false)}
+          />
+          : <AnnotateSidebar
+            model={model}
+            session={annotateSession}
+            onSubmit={() => model.submitAnnotateSession()}
+            onCollapse={() => setAnnotateSidebarHidden(true)}
+          />
       )}
 
       {showRecording && recording?.phase === 'stopped' && (

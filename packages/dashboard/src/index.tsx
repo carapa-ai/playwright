@@ -25,6 +25,8 @@ import { DashboardModel } from './dashboardModel';
 import { DashboardClient } from './dashboardClient';
 import { SessionSidebar } from './sessionSidebar';
 import { SplitView } from '@web/components/splitView';
+import { ToolbarButton } from '@web/components/toolbarButton';
+import { useSetting } from '@web/uiUtils';
 
 applyTheme();
 
@@ -38,6 +40,7 @@ if (document.hidden)
 
 const App: React.FC = () => {
   const [, setRevision] = React.useState(0);
+  const [sessionSidebarHidden, setSessionSidebarHidden] = useSetting('dashboardSessionSidebar:hidden', false);
   React.useEffect(() => model.subscribe(() => setRevision(r => r + 1)), []);
 
   return <SplitView
@@ -46,8 +49,15 @@ const App: React.FC = () => {
     sidebarSize={320}
     minSidebarSize={220}
     settingName='dashboardSessionSidebar'
-    sidebar={<SessionSidebar model={model} />}
+    sidebarHidden={sessionSidebarHidden}
+    sidebar={<SessionSidebar model={model} onCollapse={() => setSessionSidebarHidden(true)} />}
     main={<div className='dashboard-shell-main'>
+      {sessionSidebarHidden && <ToolbarButton
+        className='sidebar-reopen-button sidebar-reopen-sessions'
+        icon='layout-sidebar-left'
+        title='Show Sessions'
+        onClick={() => setSessionSidebarHidden(false)}
+      />}
       <Dashboard model={model} />
     </div>}
   />;
