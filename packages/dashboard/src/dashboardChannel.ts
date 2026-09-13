@@ -82,6 +82,7 @@ export interface DashboardChannel {
   setVisible(params: { visible: boolean }): Promise<void>;
 
   navigate(params: { url: string }): Promise<void>;
+  resize(params: { width: number; height: number }): Promise<void>;
   back(): Promise<void>;
   forward(): Promise<void>;
   reload(): Promise<void>;

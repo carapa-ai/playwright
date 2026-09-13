@@ -57,6 +57,13 @@
   box-shadow: 0 0 0 2px rgb(var(--recording-red) / 0.35);
 }
 
+.mode-toggle.toolbar-button.toggled.mode-viewport-desktop,
+.mode-toggle.toolbar-button.toggled.mode-viewport-phone {
+  color: var(--color-accent-fg);
+  background: var(--color-accent-subtle);
+  box-shadow: none;
+}
+
 .mode-toggle.toolbar-button.toggled.mode-debugger,
 .mode-toggle.toolbar-button.toggled.mode-debugger > .codicon {
   color: var(--color-accent-fg);
