@@ -25,7 +25,7 @@
   position: relative;
 }
 
-.sidebar-reopen-button {
+.sidebar-reopen-button.toolbar-button {
   position: absolute;
   z-index: 110;
   padding: 6px;
