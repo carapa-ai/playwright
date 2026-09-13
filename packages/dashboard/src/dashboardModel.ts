@@ -151,6 +151,10 @@ export class DashboardModel {
     void this._client.navigate({ url });
   }
 
+  resize(width: number, height: number) {
+    void this._client.resize({ width, height });
+  }
+
   back() {
     void this._client.back();
   }

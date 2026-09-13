@@ -30,6 +30,11 @@ import type { DashboardModel } from './dashboardModel';
 
 const BUTTONS = ['left', 'middle', 'right'] as const;
 
+const VIEWPORT_PRESETS = {
+  desktop: { width: 1280, height: 800 },
+  phone: { width: 390, height: 844 },
+} as const;
+
 async function pickSaveWritable(suggestedName: string, description: string, mime: string, extension: string): Promise<FileSystemWritableFileStream | null> {
   try {
     const handle = await (window as any).showSaveFilePicker({
@@ -152,6 +157,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
 
   const selectedTab = tabs?.find(t => t.selected);
   const ready = !!selectedTab;
+  const currentViewport = liveFrame && {
+    width: liveFrame.viewportWidth,
+    height: liveFrame.viewportHeight,
+  };
+  const desktopViewport = currentViewport?.width === VIEWPORT_PRESETS.desktop.width
+    && currentViewport.height === VIEWPORT_PRESETS.desktop.height;
+  const phoneViewport = currentViewport?.width === VIEWPORT_PRESETS.phone.width
+    && currentViewport.height === VIEWPORT_PRESETS.phone.height;
 
   const [omniboxValue, setOmniboxValue] = React.useState(selectedTab?.url ?? '');
   React.useEffect(() => {
@@ -284,6 +297,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
             >
               {interactive ? <LockOpenIcon /> : <LockIcon />}
             </ToolbarButton>
+            <ToolbarButton
+              className='mode-toggle mode-viewport-desktop'
+              icon='device-desktop'
+              title='Desktop viewport (1280 × 800)'
+              toggled={desktopViewport}
+              disabled={!ready || !interactive}
+              onClick={() => model.resize(VIEWPORT_PRESETS.desktop.width, VIEWPORT_PRESETS.desktop.height)}
+            />
+            <ToolbarButton
+              className='mode-toggle mode-viewport-phone'
+              icon='device-mobile'
+              title='Phone viewport (390 × 844)'
+              toggled={phoneViewport}
+              disabled={!ready || !interactive}
+              onClick={() => model.resize(VIEWPORT_PRESETS.phone.width, VIEWPORT_PRESETS.phone.height)}
+            />
             <ToolbarButton
               className='mode-annotate'
               title={annotateActive ? 'Add screenshot' : 'Take screenshot'}
