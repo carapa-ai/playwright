@@ -62,9 +62,11 @@ function smartUrl(input: string): string {
 
 type DashboardProps = {
   model: DashboardModel;
+  sessionSidebarHidden?: boolean;
+  onShowSessions?: () => void;
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ model }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidden = false, onShowSessions }) => {
   const [, setRevision] = React.useState(0);
   React.useEffect(() => model.subscribe(() => setRevision(r => r + 1)), [model]);
 
@@ -261,6 +263,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ model }) => {
         main={<div className='dashboard-main'>
           {/* Toolbar */}
           <div ref={toolbarRef} className='toolbar' hidden={overlayOpen}>
+            {sessionSidebarHidden && onShowSessions && <ToolbarButton
+              className='toolbar-sidebar-button'
+              icon='layout-sidebar-left'
+              title='Show Sessions'
+              onClick={onShowSessions}
+            />}
             <ToolbarButton
               ref={interactiveBtnRef}
               className='mode-toggle mode-interactive'
@@ -313,6 +321,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ model }) => {
             />
             {debuggerPaused && <span className='debugger-paused-label'>Paused</span>}
             <div style={{ flex: 'auto' }}></div>
+            {annotateSession && annotateSidebarHidden && <ToolbarButton
+              className='toolbar-sidebar-button'
+              icon='layout-sidebar-right'
+              title='Show UI Review'
+              onClick={() => setAnnotateSidebarHidden(false)}
+            />}
           </div>
 
           {/* Viewport */}
@@ -415,19 +429,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ model }) => {
         />
       )}
       {annotateSession && (
-        annotateSidebarHidden
-          ? <ToolbarButton
-            className='sidebar-reopen-button sidebar-reopen-annotate'
-            icon='layout-sidebar-right'
-            title='Show UI Review'
-            onClick={() => setAnnotateSidebarHidden(false)}
-          />
-          : <AnnotateSidebar
-            model={model}
-            session={annotateSession}
-            onSubmit={() => model.submitAnnotateSession()}
-            onCollapse={() => setAnnotateSidebarHidden(true)}
-          />
+        !annotateSidebarHidden && <AnnotateSidebar
+          model={model}
+          session={annotateSession}
+          onSubmit={() => model.submitAnnotateSession()}
+          onCollapse={() => setAnnotateSidebarHidden(true)}
+        />
       )}
 
       {showRecording && recording?.phase === 'stopped' && (

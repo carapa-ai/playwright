@@ -25,7 +25,6 @@ import { DashboardModel } from './dashboardModel';
 import { DashboardClient } from './dashboardClient';
 import { SessionSidebar } from './sessionSidebar';
 import { SplitView } from '@web/components/splitView';
-import { ToolbarButton } from '@web/components/toolbarButton';
 import { useSetting } from '@web/uiUtils';
 
 applyTheme();
@@ -53,13 +52,11 @@ const App: React.FC = () => {
     sidebarHidden={sessionSidebarHidden}
     sidebar={<SessionSidebar model={model} onCollapse={() => setSessionSidebarHidden(true)} />}
     main={<div className='dashboard-shell-main'>
-      {sessionSidebarHidden && <ToolbarButton
-        className='sidebar-reopen-button sidebar-reopen-sessions'
-        icon='layout-sidebar-left'
-        title='Show Sessions'
-        onClick={() => setSessionSidebarHidden(false)}
-      />}
-      <Dashboard model={model} />
+      <Dashboard
+        model={model}
+        sessionSidebarHidden={sessionSidebarHidden}
+        onShowSessions={() => setSessionSidebarHidden(false)}
+      />
     </div>}
   />;
 };
