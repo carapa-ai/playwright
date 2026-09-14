@@ -24,6 +24,7 @@ import { eventsHelper } from '@utils/eventsHelper';
 import { createClientInfo } from '../cli-client/registry';
 
 import { SessionProviderEvent } from './sessionProvider';
+import { installSelectMenu } from './selectMenu';
 
 import type * as api from '../../..';
 import type { Transport } from '@utils/httpServer';
@@ -577,6 +578,8 @@ class AttachedPage {
   private _page: api.Page;
   private _listeners: Disposable[] = [];
   private _screencastRunning = false;
+  private _screencastSize = { width: 1280, height: 800 };
+  private _selectMenus = new Map<api.Frame, Promise<api.JSHandle<() => void>>>();
   private _recordingPath: string | null = null;
   private _disposed = false;
 
@@ -593,10 +596,18 @@ class AttachedPage {
           this._owner._handleAttachedPageClose(this._page.context());
         }),
         eventsHelper.addEventListener(this._page, 'framenavigated', (frame: api.Frame) => {
+          void this._installSelectMenu(frame);
           if (frame === this._page.mainFrame())
             this._owner._pushTabs();
         }),
+        eventsHelper.addEventListener(this._page, 'framedetached', (frame: api.Frame) => {
+          const menu = this._selectMenus.get(frame);
+          this._selectMenus.delete(frame);
+          if (menu)
+            void this._disposeSelectMenu(menu);
+        }),
     );
+    await Promise.all(this._page.frames().map(frame => this._installSelectMenu(frame)));
     this._owner._pushTabs();
     if (this._owner.visible()) {
       this._screencastRunning = true;
@@ -608,6 +619,9 @@ class AttachedPage {
     this._disposed = true;
     this._listeners.forEach(d => d.dispose());
     this._listeners = [];
+    for (const menu of this._selectMenus.values())
+      void this._disposeSelectMenu(menu);
+    this._selectMenus.clear();
     if (this._screencastRunning)
       wrapInternal(this._page, () => this._page.screencast.stop()).catch(() => {});
     this._screencastRunning = false;
@@ -624,6 +638,29 @@ class AttachedPage {
     }
   }
 
+  private async _disposeSelectMenu(menu: Promise<api.JSHandle<() => void>>) {
+    const handle = await menu.catch(() => undefined);
+    if (handle) {
+      await wrapInternal(this._page, () => handle.evaluate(dispose => dispose())).catch(() => {});
+      await handle.dispose().catch(() => {});
+    }
+  }
+
+  private async _installSelectMenu(frame: api.Frame) {
+    if (this._disposed)
+      return;
+    const previous = this._selectMenus.get(frame);
+    const menu = (async () => {
+      if (previous)
+        await this._disposeSelectMenu(previous);
+      return wrapInternal(this._page, () => frame.evaluateHandle(installSelectMenu));
+    })();
+    this._selectMenus.set(frame, menu);
+    await menu.catch(() => {}); // A frame may navigate/detach while installing.
+    if (this._disposed || this._selectMenus.get(frame) !== menu)
+      await this._disposeSelectMenu(menu);
+  }
+
   async navigate(params: { url: string }) {
     if (!params.url)
       return;
@@ -637,6 +674,9 @@ class AttachedPage {
       throw new Error('Invalid viewport size');
     }
     await wrapInternal(this._page, () => this._page.setViewportSize({ width: params.width, height: params.height }));
+    this._screencastSize = { width: params.width, height: params.height };
+    if (this._screencastRunning)
+      await this._restartScreencast(this._page);
   }
 
   async back() {
@@ -725,7 +765,7 @@ class AttachedPage {
           return;
         this._owner.emitFrame(data.toString('base64'), viewportWidth, viewportHeight);
       },
-      size: { width: 1280, height: 800 },
+      size: this._screencastSize,
       ...(this._recordingPath ? { path: this._recordingPath } : {}),
     }));
   }

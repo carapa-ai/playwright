@@ -340,6 +340,10 @@ export class DashboardModel {
     }
     if (session.initiator === 'cli') {
       await this._client.submitAnnotation({ frames, feedback: session.feedback });
+    } else if ((globalThis as { __carapaBrowserViewerBridge?: boolean }).__carapaBrowserViewerBridge) {
+      window.dispatchEvent(new CustomEvent('carapa-browser-annotation-submitted', {
+        detail: { frames, feedback: session.feedback },
+      }));
     } else {
       const blob = await buildAnnotationZip(frames, session.feedback);
       const stamp = new Date().toISOString().replace(/[:.]/g, '-');
