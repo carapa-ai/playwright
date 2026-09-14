@@ -86,24 +86,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
   const displayRef = React.useRef<HTMLImageElement>(null);
   const screenRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
-  const viewportMainRef = React.useRef<HTMLDivElement>(null);
+  const viewportWrapperRef = React.useRef<HTMLDivElement>(null);
   const browserChromeRef = React.useRef<HTMLDivElement>(null);
   const interactiveBtnRef = React.useRef<HTMLButtonElement>(null);
   const moveThrottleRef = React.useRef(0);
+  const [maximized, setMaximized] = React.useState(false);
+  const restoreViewportRef = React.useRef<{ width: number; height: number } | null>(null);
 
   const aspect = liveFrame && liveFrame.viewportWidth && liveFrame.viewportHeight
     ? liveFrame.viewportWidth / liveFrame.viewportHeight
     : null;
 
-  const [viewportRect] = useMeasureForRef(viewportMainRef);
+  const [viewportRect] = useMeasureForRef(viewportWrapperRef);
 
   // Active recording hides the browser chrome so the viewport matches what's
   // being captured.
   const showBrowserChrome = recording?.phase !== 'recording';
 
+  const chromeHeight = showBrowserChrome ? (browserChromeRef.current?.offsetHeight ?? 40) : 0;
+
+  const maximizedViewport = React.useMemo(() => ({
+    width: Math.floor(viewportRect.width),
+    height: Math.floor(viewportRect.height - chromeHeight),
+  }), [viewportRect, chromeHeight]);
+
   const windowStyle = React.useMemo<React.CSSProperties | undefined>(() => {
+    if (maximized)
+      return { width: '100%', height: '100%' };
     const OUTER_MARGIN = 24;
-    const chromeHeight = showBrowserChrome ? (browserChromeRef.current?.offsetHeight ?? 40) : 0;
     const availW = viewportRect.width - OUTER_MARGIN;
     const availH = viewportRect.height - OUTER_MARGIN;
     if (availW <= 0 || availH <= 0)
@@ -118,7 +128,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
       w = h * aspect;
     }
     return { width: w, height: h + chromeHeight };
-  }, [viewportRect, aspect, showBrowserChrome]);
+  }, [viewportRect, aspect, showBrowserChrome, maximized]);
 
   React.useEffect(() => {
     if (flashTick === 0)
@@ -165,6 +175,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
     && currentViewport.height === VIEWPORT_PRESETS.desktop.height;
   const phoneViewport = currentViewport?.width === VIEWPORT_PRESETS.phone.width
     && currentViewport.height === VIEWPORT_PRESETS.phone.height;
+
+  const resizePreset = (viewport: { width: number; height: number }) => {
+    setMaximized(false);
+    restoreViewportRef.current = null;
+    model.resize(viewport.width, viewport.height);
+  };
+
+  const toggleMaximized = () => {
+    if (maximized) {
+      setMaximized(false);
+      const restore = restoreViewportRef.current;
+      restoreViewportRef.current = null;
+      if (restore)
+        model.resize(restore.width, restore.height);
+      return;
+    }
+    if (maximizedViewport.width < 1 || maximizedViewport.height < 1)
+      return;
+    restoreViewportRef.current = currentViewport ?? VIEWPORT_PRESETS.desktop;
+    setMaximized(true);
+    model.resize(maximizedViewport.width, maximizedViewport.height);
+  };
+
+  React.useEffect(() => {
+    if (!maximized || !interactive || !ready || maximizedViewport.width < 1 || maximizedViewport.height < 1)
+      return;
+    if (currentViewport?.width === maximizedViewport.width && currentViewport.height === maximizedViewport.height)
+      return;
+    model.resize(maximizedViewport.width, maximizedViewport.height);
+  }, [maximized, interactive, ready, maximizedViewport, currentViewport?.width, currentViewport?.height, model]);
 
   const [omniboxValue, setOmniboxValue] = React.useState(selectedTab?.url ?? '');
   React.useEffect(() => {
@@ -303,7 +343,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
               title='Desktop viewport (1280 × 800)'
               toggled={desktopViewport}
               disabled={!ready || !interactive}
-              onClick={() => model.resize(VIEWPORT_PRESETS.desktop.width, VIEWPORT_PRESETS.desktop.height)}
+              onClick={() => resizePreset(VIEWPORT_PRESETS.desktop)}
             />
             <ToolbarButton
               className='mode-toggle mode-viewport-phone'
@@ -311,7 +351,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
               title='Phone viewport (390 × 844)'
               toggled={phoneViewport}
               disabled={!ready || !interactive}
-              onClick={() => model.resize(VIEWPORT_PRESETS.phone.width, VIEWPORT_PRESETS.phone.height)}
+              onClick={() => resizePreset(VIEWPORT_PRESETS.phone)}
+            />
+            <ToolbarButton
+              className='mode-toggle mode-viewport-maximize'
+              icon={maximized ? 'screen-normal' : 'screen-full'}
+              title={maximized ? 'Restore viewport' : 'Maximize viewport'}
+              toggled={maximized}
+              disabled={!ready || !interactive}
+              onClick={toggleMaximized}
             />
             <ToolbarButton
               className='mode-annotate'
@@ -359,8 +407,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
           </div>
 
           {/* Viewport */}
-          <div className='viewport-wrapper'>
-            <div ref={viewportMainRef} className='viewport-main'>
+          <div ref={viewportWrapperRef} className='viewport-wrapper'>
+            <div className={'viewport-main' + (maximized ? ' maximized' : '')}>
               <div className='browser-window' style={windowStyle}>
                 {showBrowserChrome && (
                   <div ref={browserChromeRef} className='browser-chrome'>
