@@ -32,6 +32,8 @@ applyTheme();
 const wsGuid = new URLSearchParams(location.search).get('ws') ?? '';
 const client = DashboardClient.create('/' + wsGuid);
 const model = new DashboardModel(client);
+client.onclose = () => model.disposeAudio();
+window.addEventListener('pagehide', () => model.disposeAudio());
 
 const pushVisibility = () => model.setVisible(!document.hidden);
 document.addEventListener('visibilitychange', pushVisibility);

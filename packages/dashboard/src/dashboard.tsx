@@ -374,6 +374,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
             >
               <ScreenshotRegionIcon />
             </ToolbarButton>
+            {(globalThis as { __carapaBrowserViewerBridge?: boolean }).__carapaBrowserViewerBridge && <ToolbarButton
+              className='mode-toggle mode-audio'
+              testId='browser-audio-toggle'
+              icon={model.state.audioEnabled ? 'unmute' : 'mute'}
+              title={model.state.audioError || (model.state.audioEnabled ? 'Mute sound' : 'Enable sound')}
+              toggled={model.state.audioEnabled}
+              disabled={!ready || !model.state.audioAvailable || model.state.audioPending}
+              onClick={() => void model.toggleAudio()}
+            />}
+            {model.state.audioError && <span role='status' className='browser-audio-error' title={model.state.audioError}>{model.state.audioError}</span>}
             <ToolbarButton
               className='mode-toggle mode-record'
               title={isRecording ? 'Stop recording' : 'Record video'}

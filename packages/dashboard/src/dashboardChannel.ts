@@ -47,6 +47,8 @@ export type DashboardChannelEvents = {
   sessions: { sessions: SessionStatus[]; clientInfo: ClientInfo };
   tabs: { tabs: Tab[] };
   frame: { data: string; viewportWidth: number; viewportHeight: number };
+  audio: { data: string; sampleRate: number; channels: number };
+  audioStatus: { available: boolean; error?: string };
   annotate: {};
   cancelAnnotate: {};
   apiCalls: { apiCalls: ApiCall[] };
@@ -80,6 +82,7 @@ export interface DashboardChannel {
   newTab(params: { browser: string; context: string }): Promise<void>;
   closeSession(params: { browser: string }): Promise<void>;
   setVisible(params: { visible: boolean }): Promise<void>;
+  setAudio(params: { enabled: boolean }): Promise<void>;
 
   navigate(params: { url: string }): Promise<void>;
   resize(params: { width: number; height: number }): Promise<void>;
