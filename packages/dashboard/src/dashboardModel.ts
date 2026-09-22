@@ -16,6 +16,7 @@
 
 import { buildAnnotatedImage, saveAnnotationAsDownload } from './annotationImage';
 import { buildAnnotationZip } from './annotationZip';
+import { BrowserAudio } from './browserAudio';
 
 import type { Annotation } from './annotations';
 import type { ApiCall, DashboardChannel, DashboardChannelEvents, DebuggerSource, MouseButton, SessionStatus, SubmittedAnnotationFrame, Tab } from './dashboardChannel';
@@ -70,6 +71,10 @@ export type DashboardState = {
   // before the next action.
   debuggerPauseRequested: boolean;
   debuggerSource: DebuggerSource | null;
+  audioAvailable: boolean;
+  audioEnabled: boolean;
+  audioPending: boolean;
+  audioError: string | undefined;
 };
 
 type Listener = () => void;
@@ -89,6 +94,10 @@ const initialState: DashboardState = {
   debuggerPaused: false,
   debuggerPauseRequested: false,
   debuggerSource: null,
+  audioAvailable: false,
+  audioEnabled: false,
+  audioPending: false,
+  audioError: undefined,
 };
 
 export class DashboardModel {
@@ -99,12 +108,20 @@ export class DashboardModel {
   // Monotonic token to invalidate in-flight screenshot requests when
   // pendingAnnotate is cleared or replaced.
   private _requestId = 0;
+  private _audio = new BrowserAudio();
+  private _audioRequest = 0;
 
   constructor(client: DashboardChannel) {
     this._client = client;
     client.on('sessions', params => this._emit({ sessions: params.sessions, clientInfo: params.clientInfo, loadingSessions: false }));
     client.on('tabs', params => this._emit({ tabs: params.tabs }));
     client.on('frame', params => this._emit({ liveFrame: params }));
+    client.on('audio', params => this._audio.receive(params));
+    client.on('audioStatus', params => {
+      if (!params.available)
+        this.disposeAudio();
+      this._emit({ audioAvailable: params.available, audioError: params.error });
+    });
     client.on('annotate', () => this.enterAnnotate('cli'));
     client.on('cancelAnnotate', () => this.cancelAnnotate(false));
     client.on('apiCalls', params => this._emit({ apiCalls: params.apiCalls }));
@@ -128,7 +145,37 @@ export class DashboardModel {
   }
 
   setVisible(visible: boolean) {
+    if (!visible)
+      this._audio.clear();
     void this._client.setVisible({ visible });
+  }
+
+  async toggleAudio() {
+    const request = ++this._audioRequest;
+    const enabled = !this.state.audioEnabled;
+    this._emit({ audioPending: true, audioError: undefined });
+    try {
+      if (enabled)
+        await this._audio.start();
+      else
+        this._audio.stop();
+      if (request !== this._audioRequest)
+        return;
+      await this._client.setAudio({ enabled });
+      if (request === this._audioRequest)
+        this._emit({ audioEnabled: enabled, audioPending: false });
+    } catch (error) {
+      if (request !== this._audioRequest)
+        return;
+      this._audio.stop();
+      this._emit({ audioEnabled: false, audioPending: false, audioError: error instanceof Error ? error.message : 'Could not enable sound.' });
+    }
+  }
+
+  disposeAudio() {
+    ++this._audioRequest;
+    this._audio.stop();
+    this._emit({ audioEnabled: false, audioPending: false });
   }
 
   // Tab actions.
