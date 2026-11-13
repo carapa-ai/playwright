@@ -670,9 +670,8 @@ class AttachedPage {
   async resize(params: { width: number; height: number }) {
     if (!Number.isInteger(params.width) || !Number.isInteger(params.height)
         || params.width < 1 || params.height < 1
-        || params.width > 10000 || params.height > 10000) {
+        || params.width > 10000 || params.height > 10000)
       throw new Error('Invalid viewport size');
-    }
     await wrapInternal(this._page, () => this._page.setViewportSize({ width: params.width, height: params.height }));
     this._screencastSize = { width: params.width, height: params.height };
     if (this._screencastRunning)

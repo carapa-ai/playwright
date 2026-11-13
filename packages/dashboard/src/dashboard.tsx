@@ -128,7 +128,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ model, sessionSidebarHidde
       w = h * aspect;
     }
     return { width: w, height: h + chromeHeight };
-  }, [viewportRect, aspect, showBrowserChrome, maximized]);
+  }, [viewportRect, aspect, chromeHeight, maximized]);
 
   React.useEffect(() => {
     if (flashTick === 0)
